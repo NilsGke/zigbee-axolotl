@@ -11,7 +11,7 @@
 
 static const char *TAG = "AXOLOTL-STATE-TEST";
 
-void physical_button_task(void *pvParameters) {
+static void physical_button_task(void *pvParameters) {
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(10));
     if (!read_button())
@@ -29,7 +29,7 @@ void physical_button_task(void *pvParameters) {
   }
 }
 
-void axolotl_control_task(void *pvParameters) {
+static void axolotl_control_task(void *pvParameters) {
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(200));
     if (should_press_button()) {

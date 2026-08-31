@@ -9,12 +9,12 @@ static AXOLOTL_STATE target_state = 0;
 
 void set_target_color(AXOLOTL_COLOR color) { target_color = color; }
 void set_target_state(AXOLOTL_STATE state) { target_state = state; }
-AXOLOTL_COLOR get_target_color() { return target_color; }
-AXOLOTL_STATE get_target_state() { return target_state; }
-const char *get_target_color_string() { return color_names[target_color]; }
-const char *get_target_state_string() { return state_names[target_state]; }
+AXOLOTL_COLOR get_target_color(void) { return target_color; }
+AXOLOTL_STATE get_target_state(void) { return target_state; }
+const char *get_target_color_string(void) { return color_names[target_color]; }
+const char *get_target_state_string(void) { return state_names[target_state]; }
 
-bool should_press_button() {
+bool should_press_button(void) {
   AXOLOTL_STATE state = get_state();
   AXOLOTL_COLOR color = get_color();
 

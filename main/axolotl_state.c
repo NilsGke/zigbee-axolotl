@@ -11,19 +11,26 @@ static const char *TAG = "AXOLOTL-STATE-TEST";
 
 static AXOLOTL_STATE state = OFF;
 static AXOLOTL_COLOR color = 0;
-static int64_t cycle_start_time = 0;
+static _Atomic int64_t cycle_start_time = 0;
 
 static const uint32_t color_duration_ms[AXOLOTL_COLOR_COUNT] = {
     [WHITE] = 4202, [YELLOW] = 4163, [ORANGE] = 2772,
     [PINK] = 3597,  [BLUE] = 4134,
 };
 
-void next_state() {
+const char *state_names[AXOLOTL_STATE_COUNT] = {
+    [OFF] = "off", [CYCLING] = "cycling", [STATIC] = "steady"};
 
+const char *color_names[AXOLOTL_COLOR_COUNT] = {
+    [WHITE] = "white",   [BLUE] = "blue", [YELLOW] = "yellow",
+    [ORANGE] = "orange", [PINK] = "pink",
+};
+
+void next_state() {
   state = (state + 1) % AXOLOTL_STATE_COUNT;
 
   if (state == CYCLING) {
-    cycle_start_time = esp_timer_get_time() - 1;
+    cycle_start_time = esp_timer_get_time();
     color = WHITE;
   }
 }
@@ -35,7 +42,7 @@ const char *get_state_string() { return state_names[state]; }
 const char *get_color_string() { return color_names[color]; }
 
 static void tick_task(void *pvParameters) {
-  uint16_t total_color_scene_duration = 0;
+  uint32_t total_color_scene_duration = 0;
   for (AXOLOTL_COLOR c = 0; c < AXOLOTL_COLOR_COUNT; c++)
     total_color_scene_duration += color_duration_ms[c];
 
@@ -46,11 +53,11 @@ static void tick_task(void *pvParameters) {
       // update color
       int64_t now = esp_timer_get_time();
       int64_t elapsed_total_ms = (now - cycle_start_time) / 1000;
-      int16_t elapsed_curr_cycle_ms =
+      int32_t elapsed_curr_cycle_ms =
           elapsed_total_ms % total_color_scene_duration;
 
       // add color until stack is bigger then elapsed time
-      int16_t elapsed_stack_ms = 0;
+      int32_t elapsed_stack_ms = 0;
       AXOLOTL_COLOR curr_color = 0;
       for (; curr_color < AXOLOTL_COLOR_COUNT; curr_color++) {
         elapsed_stack_ms += color_duration_ms[curr_color];
