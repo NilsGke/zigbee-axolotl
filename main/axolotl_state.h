@@ -5,7 +5,7 @@
 typedef enum {
   OFF,
   CYCLING,
-  STEADY,
+  STATIC,
 
   AXOLOTL_STATE_COUNT,
 } AXOLOTL_STATE;
@@ -30,3 +30,11 @@ AXOLOTL_STATE get_state(void);
 AXOLOTL_COLOR get_color(void);
 const char *get_state_string(void);
 const char *get_color_string(void);
+
+static const char *state_names[AXOLOTL_STATE_COUNT] = {
+    [OFF] = "off", [CYCLING] = "cycling", [STATIC] = "steady"};
+
+static const char *color_names[AXOLOTL_COLOR_COUNT] = {
+    [WHITE] = "white",   [BLUE] = "blue", [YELLOW] = "yellow",
+    [ORANGE] = "orange", [PINK] = "pink",
+};

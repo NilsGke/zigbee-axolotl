@@ -5,6 +5,7 @@
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
+#include "target_state.h"
 
 static const char *TAG = "AXOLOTL-STATE-TEST";
 
@@ -30,14 +31,7 @@ void next_state() {
 AXOLOTL_STATE get_state() { return state; }
 AXOLOTL_COLOR get_color() { return color; }
 
-static const char *state_names[AXOLOTL_STATE_COUNT] = {
-    [OFF] = "off", [CYCLING] = "cycling", [STEADY] = "steady"};
 const char *get_state_string() { return state_names[state]; }
-
-static const char *color_names[AXOLOTL_COLOR_COUNT] = {
-    [WHITE] = "white",   [BLUE] = "blue", [YELLOW] = "yellow",
-    [ORANGE] = "orange", [PINK] = "pink",
-};
 const char *get_color_string() { return color_names[color]; }
 
 static void tick_task(void *pvParameters) {
@@ -68,8 +62,11 @@ static void tick_task(void *pvParameters) {
       }
     }
 
-    ESP_LOGI(TAG, "current color: %s\ncurrent state: %s", get_color_string(),
-             get_state_string());
+    ESP_LOGI(TAG,
+             "\ncurrent color: %s\ncurrent state: %s\ncurrent target color: "
+             "%s\ncurrent target state: %s",
+             get_color_string(), get_state_string(), get_target_color_string(),
+             get_target_state_string());
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
