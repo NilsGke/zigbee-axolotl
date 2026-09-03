@@ -3,6 +3,8 @@
 
 #include "axolotl_button.h"
 #include "button.h"
+#include "zigbee.h"
+
 #include "esp_log.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
@@ -44,7 +46,10 @@ void app_main(void) {
   srand(time(NULL)); // random initialization
   init_button();
   init_axolotl_button();
+
+  init_zigbee();
   create_axolotl_task();
+
   xTaskCreate(physical_button_task, "PhysicalButtonTask", 4096, NULL, 1, NULL);
   xTaskCreate(axolotl_control_task, "AxolotlControlTask", 4096, NULL, 1, NULL);
 }
