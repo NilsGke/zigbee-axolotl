@@ -1,7 +1,11 @@
+const fz = require("zigbee-herdsman-converters/converters/fromZigbee");
+const tz = require("zigbee-herdsman-converters/converters/toZigbee");
+const reporting = require("zigbee-herdsman-converters/lib/reporting");
 const {
   presets: e,
   access: ea,
 } = require("zigbee-herdsman-converters/lib/exposes");
+
 const MODES = ["white", "yellow", "orange", "pink", "blue", "cycling"];
 
 module.exports = {
@@ -10,44 +14,35 @@ module.exports = {
   vendor: "NilsGke",
   description: "Minecraft Axolotl Lamp",
   fromZigbee: [
+    fz.on_off,
     {
       cluster: 64512, // 0xFC00
       type: ["attributeReport", "readResponse"],
       convert: (_model, msg) => {
-        const out = {};
-        if (msg.data["0"] !== undefined) {
-          out.state = msg.data["0"] ? "ON" : "OFF";
-        }
-        if (msg.data["1"] !== undefined) {
-          out.mode = MODES[msg.data["1"]];
-        }
-        return out;
+        if (msg.data["1"] === undefined) return {};
+        return { mode: MODES[msg.data["1"]] };
       },
     },
   ],
   toZigbee: [
+    tz.on_off,
     {
-      key: ["state", "mode"],
-      convertSet: async (entity, key, value, _meta) => {
-        if (key === "state") {
-          await entity.write(0xfc00, {
-            0x0000: { value: value === "ON" ? 1 : 0, type: 0x10 },
-          });
-          return { state: { state: value } };
-        } else {
-          await entity.write(0xfc00, {
-            0x0001: { value: MODES.indexOf(value), type: 0x30 },
-          });
-          return { state: { mode: value } };
-        }
+      key: ["mode"],
+      convertSet: async (entity, _key, value, _meta) => {
+        const idx = MODES.indexOf(value);
+        if (idx < 0) throw new Error(`mode must be one of ${MODES.join(", ")}`);
+        await entity.write(0xfc00, { 0x0001: { value: idx, type: 0x30 } });
+        return { state: { mode: value } };
       },
       convertGet: async (entity) => {
-        await entity.read(0xfc00, [0x0000, 0x0001]);
+        await entity.read(0xfc00, [0x0001]);
       },
     },
   ],
-  exposes: [
-    e.binary("state", ea.ALL, "ON", "OFF"),
-    e.enum("mode", ea.ALL, MODES),
-  ],
+  exposes: [e.switch(), e.enum("mode", ea.ALL, MODES)],
+  configure: async (device, coordinatorEndpoint) => {
+    const ep = device.getEndpoint(10);
+    await reporting.bind(ep, coordinatorEndpoint, ["genOnOff"]);
+    await reporting.onOff(ep);
+  },
 };

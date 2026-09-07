@@ -10,9 +10,14 @@
 #include "ezbee/bdb.h"
 #include "ezbee/zcl/cluster/basic_desc.h"
 #include "ezbee/zcl/cluster/custom.h"
+#include "ezbee/zcl/cluster/groups_desc.h"
 #include "ezbee/zcl/cluster/identify_desc.h"
+#include "ezbee/zcl/cluster/on_off_desc.h"
+#include "ezbee/zcl/cluster/scenes_desc.h"
+#include "ezbee/zcl/zcl_core.h"
 #include "ezbee/zcl/zcl_desc.h"
 #include "ezbee/zcl/zcl_type.h"
+#include "ezbee/zha.h"
 #include "freertos/idf_additions.h"
 #include "nvs_flash.h"
 #include "target_state.h"
@@ -36,6 +41,11 @@ static void axolotl_apply(void) {
     set_target_state(STATIC);
     set_target_color(mode_to_color[s_mode]);
   }
+
+  uint8_t v = s_on;
+  ezb_zcl_set_attr_value(AXOLOTL_ENDPOINT, EZB_ZCL_CLUSTER_ID_ON_OFF,
+                         EZB_ZCL_CLUSTER_SERVER, EZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                         EZB_ZCL_STD_MANUF_CODE, &v, false);
   ESP_LOGI(TAG, "zigbee -> on=%d mode=%d", s_on, s_mode);
 }
 
@@ -44,9 +54,7 @@ static void axolotl_on_attr_write(uint8_t ep_id, uint16_t attr_id,
   if (ep_id != AXOLOTL_ENDPOINT)
     return;
 
-  if (attr_id == AXOLOTL_ATTR_ON_OFF)
-    s_on = *(uint8_t *)new_value;
-  else if (attr_id == AXOLOTL_ATTR_MODE)
+  if (attr_id == AXOLOTL_ATTR_MODE)
     s_mode = *(uint8_t *)new_value;
   else
     return;
@@ -88,6 +96,23 @@ static void schedule_commisioning_retry(ezb_bdb_comm_mode_mask_t mode,
       esp_timer_start_once(s_retry_timer, (uint64_t)delay_ms * 1000));
 }
 
+static void axolotl_zcl_action_handler(ezb_zcl_core_action_callback_id_t cb_id,
+                                       void *message) {
+  if (cb_id != EZB_ZCL_CORE_SET_ATTR_VALUE_CB_ID)
+    return;
+  ezb_zcl_set_attr_value_message_t *m = message;
+  if (m->info.dst_ep != AXOLOTL_ENDPOINT)
+    return;
+  if (m->info.cluster_id == EZB_ZCL_CLUSTER_ID_ON_OFF &&
+      m->in.attribute.id == EZB_ZCL_ATTR_ON_OFF_ON_OFF_ID) {
+    uint8_t nv = *(uint8_t *)m->in.attribute.data.value;
+    if (nv == s_on)
+      return;
+    s_on = nv;
+    axolotl_apply();
+  }
+}
+
 static esp_err_t create_axolotl_device(void) {
   ezb_af_device_desc_t dev = ezb_af_create_device_desc();
 
@@ -112,16 +137,27 @@ static esp_err_t create_axolotl_device(void) {
   ezb_zcl_cluster_desc_t identify =
       ezb_zcl_identify_create_cluster_desc(&id_cfg, EZB_ZCL_CLUSTER_SERVER);
 
+  // groups (groupcast)
+  ezb_zcl_groups_cluster_config_t groups_cfg = {.name_support = 0};
+  ezb_zcl_cluster_desc_t groups =
+      ezb_zcl_groups_create_cluster_desc(&groups_cfg, EZB_ZCL_CLUSTER_SERVER);
+
+  // scenes
+  ezb_zcl_cluster_desc_t scenes =
+      ezb_zcl_scenes_create_cluster_desc(NULL, EZB_ZCL_CLUSTER_SERVER);
+
+  // standard on/off (bindable)
+  ezb_zcl_on_off_cluster_server_config_t on_off_cfg = {.on_off = false};
+  ezb_zcl_cluster_desc_t onoff =
+      ezb_zcl_on_off_create_cluster_desc(&on_off_cfg, EZB_ZCL_CLUSTER_SERVER);
+
   // custom axolotl cluster
   ezb_zcl_custom_cluster_config_t cc = {.cluster_id = AXOLOTL_CLUSTER_ID,
                                         .init_func = axolotl_cluster_init,
                                         .deinit_func = NULL};
   ezb_zcl_cluster_desc_t custom =
       ezb_zcl_custom_create_cluster_desc(&cc, EZB_ZCL_CLUSTER_SERVER);
-  uint8_t on_def = 0, mode_def = AXO_MODE_WHITE;
-  ezb_zcl_custom_cluster_desc_add_attr(
-      custom, AXOLOTL_ATTR_ON_OFF, EZB_ZCL_ATTR_TYPE_BOOL,
-      EZB_ZCL_ATTR_ACCESS_READ_WRITE | EZB_ZCL_ATTR_ACCESS_REPORTING, &on_def);
+  uint8_t mode_def = AXO_MODE_WHITE;
   ezb_zcl_custom_cluster_desc_add_attr(
       custom, AXOLOTL_ATTR_MODE, EZB_ZCL_ATTR_TYPE_ENUM8,
       EZB_ZCL_ATTR_ACCESS_READ_WRITE | EZB_ZCL_ATTR_ACCESS_REPORTING,
@@ -131,16 +167,20 @@ static esp_err_t create_axolotl_device(void) {
   ezb_af_ep_config_t ep_cfg = {
       .ep_id = AXOLOTL_ENDPOINT,
       .app_profile_id = EZB_AF_HA_PROFILE_ID,
-      .app_device_id = AXOLOTL_DEVICE_ID,
+      .app_device_id = EZB_ZHA_ON_OFF_LIGHT_DEVICE_ID,
       .app_device_version = 0,
   };
   ezb_af_ep_desc_t ep = ezb_af_create_endpoint_desc(&ep_cfg);
   ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, basic));
   ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, identify));
+  ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, groups));
+  ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, scenes));
+  ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, onoff));
   ESP_ERROR_CHECK(ezb_af_endpoint_add_cluster_desc(ep, custom));
 
   ESP_ERROR_CHECK(ezb_af_device_add_endpoint_desc(dev, ep));
   ESP_ERROR_CHECK(ezb_af_device_desc_register(dev));
+  ezb_zcl_core_action_handler_register(axolotl_zcl_action_handler);
   return ESP_OK;
 }
 

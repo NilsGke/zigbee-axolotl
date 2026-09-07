@@ -1,6 +1,5 @@
 
 #pragma once
-#include "esp_zigbee.h"
 
 #define AXOLOTL_MANUFACTURER_NAME                                              \
   "\x07"                                                                       \
@@ -10,9 +9,8 @@
   "Axolotl"
 #define AXOLOTL_ENDPOINT 10
 #define AXOLOTL_CLUSTER_ID 0xFC00
-#define AXOLOTL_DEVICE_ID 0xFF00
-#define AXOLOTL_ATTR_ON_OFF 0x0000 // bool
-#define AXOLOTL_ATTR_MODE 0x0001   // enum8
+#define AXOLOTL_DEVICE_ID 0x0100 // On/Off Light (ZHA)
+#define AXOLOTL_ATTR_MODE 0x0001 // enum8
 
 typedef enum {
   AXO_MODE_WHITE = 0,
