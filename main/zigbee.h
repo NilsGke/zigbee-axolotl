@@ -9,6 +9,19 @@
   "\x07"                                                                       \
   "Axolotl"
 #define AXOLOTL_ENDPOINT 10
+#define AXOLOTL_CLUSTER_ID 0xFC00
+#define AXOLOTL_DEVICE_ID 0xFF00
+#define AXOLOTL_ATTR_ON_OFF 0x0000 // bool
+#define AXOLOTL_ATTR_MODE 0x0001   // enum8
+
+typedef enum {
+  AXO_MODE_WHITE = 0,
+  AXO_MODE_YELLOW,
+  AXO_MODE_ORANGE,
+  AXO_MODE_PINK,
+  AXO_MODE_BLUE,
+  AXO_MODE_CYCLING,
+} axolotl_zb_mode_t;
 
 #define AXOLOTL_ZB_DEVICE_CONFIG()                                             \
   {                                                                            \

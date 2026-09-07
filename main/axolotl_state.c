@@ -69,11 +69,13 @@ static void tick_task(void *pvParameters) {
       }
     }
 
-    ESP_LOGI(TAG,
-             "\ncurrent color: %s\ncurrent state: %s\ncurrent target color: "
-             "%s\ncurrent target state: %s",
-             get_color_string(), get_state_string(), get_target_color_string(),
-             get_target_state_string());
+    /* ESP_LOGI(TAG, */
+    /*          "\ncurrent color: %s\ncurrent state: %s\ncurrent target color: "
+     */
+    /*          "%s\ncurrent target state: %s", */
+    /*          get_color_string(), get_state_string(),
+     * get_target_color_string(), */
+    /*          get_target_state_string()); */
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
