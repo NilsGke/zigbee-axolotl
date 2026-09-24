@@ -1,13 +1,9 @@
 
 #include "axolotl_state.h"
 
-#include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
-#include "target_state.h"
-
-static const char *TAG = "AXOLOTL-STATE-TEST";
 
 static AXOLOTL_STATE state = OFF;
 static AXOLOTL_COLOR color = 0;
@@ -22,8 +18,8 @@ const char *state_names[AXOLOTL_STATE_COUNT] = {
     [OFF] = "off", [CYCLING] = "cycling", [STATIC] = "steady"};
 
 const char *color_names[AXOLOTL_COLOR_COUNT] = {
-    [WHITE] = "white",   [BLUE] = "blue", [YELLOW] = "yellow",
-    [ORANGE] = "orange", [PINK] = "pink",
+    [WHITE] = "white", [YELLOW] = "yellow", [ORANGE] = "orange",
+    [PINK] = "pink",   [BLUE] = "blue",
 };
 
 void next_state() {

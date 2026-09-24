@@ -16,10 +16,10 @@ typedef enum {
 // 2 = ...
 typedef enum {
   WHITE,
-  BLUE,
   YELLOW,
   ORANGE,
   PINK,
+  BLUE,
 
   AXOLOTL_COLOR_COUNT,
 } AXOLOTL_COLOR;
