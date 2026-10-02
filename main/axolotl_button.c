@@ -4,7 +4,7 @@
 #include "driver/gpio.h"
 #include "freertos/idf_additions.h"
 
-#define BUTTON_PIN GPIO_NUM_10
+#define BUTTON_PIN GPIO_NUM_0
 
 void init_axolotl_button(void) {
   ESP_ERROR_CHECK(gpio_reset_pin(BUTTON_PIN));
