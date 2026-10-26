@@ -16,7 +16,8 @@ module.exports = {
   fromZigbee: [
     fz.on_off,
     {
-      cluster: 64512, // 0xFC00
+      // 0xFC00, herdsman doesn't know it and names it "64512" (string)
+      cluster: "64512",
       type: ["attributeReport", "readResponse"],
       convert: (_model, msg) => {
         if (msg.data["1"] === undefined) return {};
